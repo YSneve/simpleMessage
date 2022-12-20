@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1069955755886",
+    "firebase_url": "https://evaulproject-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "evaulproject",
+    "storage_bucket": "evaulproject.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069955755886:android:498a1715a7770923181b7f",
+        "android_client_info": {
+          "package_name": "com.snv.musicplayerapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1069955755886-oiqt2sbd7t84jppj11fphb3q0cmpvetd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSQwuAZ3fMEbgkJ-dI_VvdvPihATEOPo8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1069955755886-oiqt2sbd7t84jppj11fphb3q0cmpvetd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
