@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="5dp"
         android:layout_marginTop="20dp"
-        android:background="@drawable/messagebackground"
+        android:background="@drawable/other_messages_background"
         android:fontFamily="@font/montserrat"
         android:maxWidth="220dp"
         android:paddingHorizontal="19dp"

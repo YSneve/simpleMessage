@@ -1,5 +1,6 @@
 package com.snv.simpleMessage
 
+import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings.*
 import android.util.Log
@@ -34,8 +35,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var listOfMyMessages: MutableList<messageClass>
     private lateinit var binding: ActivityMainBinding
     private lateinit var deviceUniqueId: String
+
+
     private val model: MainViewModel by viewModels()
     private lateinit var recyclerMessages: RecyclerView
+    private var startUpLoadComplete = false
+    private var sentByCurrentUser = false
+    private var listOfIds =  mutableMapOf<String, String>()
+
+    private lateinit var myName: String
+
+//    private var myMediaplayer = MediaPlayer.create(this, R.raw.new_message_sound)
 
     var maxMessagesToShow = 100
 
@@ -47,6 +57,7 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         recyclerMessages = binding.recyclerMessagesView
@@ -65,14 +76,38 @@ class MainActivity : AppCompatActivity() {
 
         binding.searchBtn.setOnClickListener {
             sendClick()
-
+            sentByCurrentUser = true
             binding.editText1.text.clear()
         }
 
+        binding.settingsButton.setOnClickListener {
+
+            val myIntent = Intent(this, settings_activity::class.java)
+            startActivity(myIntent)
+        }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            myName = getMyName()
+        }
+
+        val nameChangeListner = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                GlobalScope.launch(Dispatchers.IO) {
+                    myName = getMyName()
+                }
+            }
+            override fun onCancelled(databaseError: DatabaseError) {
+                // Getting Post failed, log a message
+                Log.w("UPDATER", "loadPost:onCancelled", databaseError.toException())
+            }
+        }
+        Firebase.database.getReference("name").child(deviceUniqueId)
+            .addValueEventListener(nameChangeListner)
 
         val messageListener = object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 Log.d("UPDATER", "We've got an update.. retrieving data..")
+
                 messagesUpdate()
             }
 
@@ -84,23 +119,58 @@ class MainActivity : AppCompatActivity() {
         Firebase.database.getReference("messages").addValueEventListener(messageListener)
 
 
-
     }
 
-    fun messagesUpdate() {
-        GlobalScope.launch(Dispatchers.IO) {
-            loadMessages()
+    suspend fun getName(idToFind: String):String{
 
+        if (listOfIds.containsKey(idToFind))
+            return listOfIds[idToFind]!!
+
+        val namesRef = Firebase.database.getReference("names")
+        listOfIds.put(idToFind, namesRef.child(idToFind).get().await().value.toString())
+
+        return listOfIds[idToFind]!!
+    }
+    suspend fun getMyName(): String {
+        val namesRef = Firebase.database.getReference("names")
+        var retName: String?
+        try {
+            retName = (namesRef.child(deviceUniqueId).get().await()).value?.toString()
+            return retName!!
+
+        } catch (e:java.lang.Exception) {
+            namesRef.child(deviceUniqueId).setValue("User")
+            return "User"
         }
-        setMessagesRecycler()
+    }
+
+
+    fun messagesUpdate() {
+
+        if (startUpLoadComplete == false) {
+
+            GlobalScope.launch(Dispatchers.IO) {
+                startupLoadMessages()
+                startUpLoadComplete = true
+            }
+            setMessagesRecycler()
+        } else {
+
+            GlobalScope.launch(Dispatchers.IO) {
+                updateLoadMessage()
+//                    myMediaplayer.start()
+            }
+        }
+
+
     }
 
     fun sendClick() {
         val MessageTextBox = findViewById<EditText>(R.id.editText1)
-        val usernameBox = findViewById<EditText>(R.id.personNameTextbox)
+//        val usernameBox = findViewById<EditText>(R.id.personNameTextbox)
 
         val inputMessage = MessageTextBox.text.toString()
-        val currentUserUsername = usernameBox.text.toString()
+        val currentUserUsername = "test"//usernameBox.text.toString()
 
         GlobalScope.launch(Dispatchers.IO) {
             sendMessage(inputMessage, currentUserUsername)
@@ -121,12 +191,11 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
-    private suspend fun getMessage(searchText: String): DataSnapshot {
+    private suspend fun getMessage(messageId: String): DataSnapshot {
 
         val fb = Firebase.database.getReference("messages")
 
-        return fb.child(searchText).get().await() as DataSnapshot
+        return fb.child(messageId).get().await() as DataSnapshot
     }
 
 
@@ -135,7 +204,8 @@ class MainActivity : AppCompatActivity() {
 
         var messagesRef = Firebase.database.getReference("messages")
         raiseMessagesCount(count)
-        messagesRef.child(count.toString()).setValue(mapOf("text" to message, "username" to userName, "userid" to deviceUniqueId ))
+        messagesRef.child(count.toString())
+            .setValue(mapOf("text" to message, "userid" to deviceUniqueId))
     }
 
 
@@ -144,62 +214,66 @@ class MainActivity : AppCompatActivity() {
         reference.setValue(messagesCount + 1)
     }
 
+    suspend fun updateLoadMessage() {
+        var count = getCount()
 
-    suspend fun loadMessages() {
+        listOfOhersMessages.add(loadMessages(count))
 
+        notifyChange()
+    }
+
+    suspend fun startupLoadMessages() {
         var toLoadMessages by Delegates.notNull<Int>()
-
-        listOfOhersMessages.clear()
 
         var count = getCount()
 
         if (count - maxMessagesToShow <= 0) toLoadMessages = 0
         else toLoadMessages = count - maxMessagesToShow
 
+        for (i in (count) downTo (toLoadMessages + 1))
+            listOfOhersMessages.add(0, loadMessages(i))
+
+        notifyChange()
+    }
+
+    suspend fun loadMessages(dbId: Int): messageClass {
+
         var recievedMessage: DataSnapshot
         var messageUserName: String
         var messageText: String
 
-        for (i in (count) downTo (toLoadMessages + 1)) {
-            Log.d("LOADER", String.format("Added message with id - %S", i - 1))
 
-            recievedMessage = getMessage((i - 1).toString())
+        Log.d("LOADER", String.format("Added message with id - %S", dbId - 1))
 
-            messageUserName = recievedMessage.child("username").value as String
-            messageText = recievedMessage.child("text").value as String
-
-            if (recievedMessage.child("userid").value.toString() == deviceUniqueId
-            ) {
-                Log.d(
-                    "LOADER", String.format(
-                        "This is two equals ids: %s and %s",
-                        recievedMessage.child("userid").value.toString(),
-                        deviceUniqueId
-                    )
-                )
-
-                    listOfOhersMessages.add(0, messageClass(i, messageText))
+        recievedMessage = getMessage((dbId - 1).toString())
 
 
-            } else {
-                    listOfOhersMessages.add(0, messageClass(i, messageText, messageUserName))
-                Log.d(
-                    "LOADER",
-                    String.format(
-                        "This is two not equals ids: %s and %s",
-                        recievedMessage.child("userid").value.toString(),
-                        deviceUniqueId
-                    )
-                )
-            }
+        messageText = recievedMessage.child("text").value as String
+
+        if (recievedMessage.child("userid").value.toString() == deviceUniqueId
+        ) {
+
+            return messageClass(dbId, messageText)
+        } else {
+            val name = getName(recievedMessage.child("userid").value.toString())
+            messageUserName = name
+            return messageClass(dbId, messageText, messageUserName)
         }
-        notifyChange()
     }
 
     private fun notifyChange() {
-        GlobalScope.launch (Dispatchers.Main) {
+        GlobalScope.launch(Dispatchers.Main) {
 
             recyclerMessages.adapter?.notifyDataSetChanged()
+            if (sentByCurrentUser) {
+
+                recyclerMessages.scrollToPosition(listOfOhersMessages.count() - 1)
+                sentByCurrentUser = false
+            } else {
+                Log.d("SCROLLSTATE", recyclerMessages.scrollState.toString())
+                if (recyclerMessages.scrollState < 3)
+                    recyclerMessages.scrollToPosition(listOfOhersMessages.count() - 1)
+            }
         }
     }
 
@@ -218,8 +292,10 @@ class MainActivity : AppCompatActivity() {
 
 
         binding.recyclerMessagesView.layoutManager = llm
+
         messageAdapter = messageAdapter(this, listOfOhersMessages)
         recyclerMessages.setAdapter(messageAdapter)
+
 
         notifyChange()
 
