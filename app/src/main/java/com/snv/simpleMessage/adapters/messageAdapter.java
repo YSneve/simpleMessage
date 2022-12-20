@@ -10,7 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.snv.musicplayerapp.R;
+import com.snv.simpleMessage.R;
 import com.snv.simpleMessage.messageClass;
 
 import java.util.List;

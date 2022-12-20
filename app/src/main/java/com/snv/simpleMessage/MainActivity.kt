@@ -18,8 +18,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
-import com.snv.musicplayerapp.R
-import com.snv.musicplayerapp.databinding.ActivityMainBinding
+import com.snv.simpleMessage.databinding.ActivityMainBinding
 import com.snv.simpleMessage.adapters.messageAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -37,7 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var deviceUniqueId: String
 
 
-    private val model: MainViewModel by viewModels()
     private lateinit var recyclerMessages: RecyclerView
     private var startUpLoadComplete = false
     private var sentByCurrentUser = false

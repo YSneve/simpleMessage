@@ -6,8 +6,7 @@ import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.snv.musicplayerapp.R
-import com.snv.musicplayerapp.databinding.ActivitySettingsBinding
+import com.snv.simpleMessage.databinding.ActivitySettingsBinding
 
 class settings_activity : AppCompatActivity() {
 

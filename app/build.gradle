@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace 'com.snv.musicplayerapp'
+    namespace 'com.snv.simpleMessage'
     compileSdk 33
     defaultConfig {
-        applicationId "com.snv.musicplayerapp"
+        applicationId "com.snv.simpleMessage"
         minSdk 28
         targetSdk 33
         versionCode 1
